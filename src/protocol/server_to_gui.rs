@@ -1,23 +1,40 @@
 //! Messages from the server to the GUI.
 
+use crate::protocol::common;
+
 /// Labels for messages from the server to the GUI.
-pub enum GuiToServerMsg {
-    /// Used for the initial connection response.
-    InitialConnectionResponse(InitialConnectionResponse),
+#[repr(u8)]
+pub enum ServerToGuiLabel {
+    /// Status of the current game.
+    GameStatus = 1,
+}
+
+pub enum ServerToGuiMsg {
+    /// Status of the current game.
+    GameStatus(GameStatusPld),
 }
 
 /// Header for all messages.
 #[repr(C, packed(1))]
 pub struct Header {
-    /// Message label. (GuiToServerLabel)
-    label: u8,
+    /// Message label.
+    label: ServerToGuiLabel,
+}
+
+/// Actual packet structure.
+#[repr(C, packed(1))]
+pub struct Packet<T> {
+    /// Packet header.
+    header: Header,
+    /// Packet payload.
+    payload: T,
 }
 
 /// Response to a connection request by a GUI.
 #[repr(C, packed(1))]
-pub struct InitialConnectionResponse {
-    /// Message header.
-    header: Header,
-    /// Result of the connection request.
-    accepted: bool,
+pub struct GameStatusPld {
+    /// True if a game is running, false otherwise.
+    pub ongoing: bool,
+    /// Current game speed.
+    pub speed: common::GameSpeed,
 }

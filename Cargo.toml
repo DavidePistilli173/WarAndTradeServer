@@ -1,8 +1,8 @@
 [package]
-name = "WarAndTradeCore"
+name = "WarAndTradeServer"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 chrono = "0.4.31"
-rwlog={version="0.1.0", path="../rwlog" }
+rwlog = { version = "0.1.0", path = "../rwlog" }

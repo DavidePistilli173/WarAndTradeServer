@@ -1,43 +1,60 @@
 //! Messages from the GUI to the server.
 
+use crate::protocol::common;
+
 /// Labels for messages from the GUI to the server.
+#[repr(u8)]
+pub enum GuiToServerLabel {
+    /// Start a new game.
+    NewGame = 1,
+    /// Load an existing game.
+    LoadGame = 2,
+    /// Set the game speed.
+    SetSpeed = 3,
+}
+
+/// Actual enumeration containing all available messages.
 pub enum GuiToServerMsg {
-    /// Used to start a new game.
-    NewGame(NewGame),
-    /// Used to load a previously saved game.
-    LoadGame(LoadGame),
-    /// Used to save the current game.
-    SaveGame(SaveGame),
+    /// Start a new game.
+    NewGame(NewGamePld),
+    /// Load an existing game.
+    LoadGame(LoadGamePld),
+    /// Set the game speed.
+    SetSpeed(SetSpeedPld),
 }
 
 /// Header for all messages.
 #[repr(C, packed(1))]
 pub struct Header {
-    /// ID of the sender, assigned from the server.
-    /// On the initial connection request, this shall be ignored.
-    /// On subsequent messages it will be used to identify the sender.
-    sender_id: u64,
-    /// Message label. (GuiToServerLabel)
-    label: u8,
+    /// Message label.
+    pub label: GuiToServerLabel,
+}
+
+/// Actual packet structure.
+#[repr(C, packed(1))]
+pub struct Packet<T> {
+    /// Packet header.
+    pub header: Header,
+    //// Packet payload.
+    pub payload: T,
 }
 
 /// Command for starting a new game.
 #[repr(C, packed(1))]
-pub struct NewGame {
-    /// Packet header.
-    header: Header,
+pub struct NewGamePld {
+    /// Name of the player's civilisation.
+    pub civ_name: [u8; 64],
 }
 
-/// Command for loading a previously saved game.
+/// Keep-alive message.
 #[repr(C, packed(1))]
-pub struct LoadGame {
-    /// Packet header.
-    header: Header,
+pub struct LoadGamePld {
+    /// ID of the game to load.
+    pub id: u32,
 }
 
-/// Command for saving the current game.
 #[repr(C, packed(1))]
-pub struct SaveGame {
-    /// Packet header.
-    header: Header,
+pub struct SetSpeedPld {
+    /// New speed to set.
+    pub speed: common::GameSpeed,
 }
