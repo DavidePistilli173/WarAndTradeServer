@@ -53,6 +53,7 @@ impl AppManager {
                 .expect("Time went backwards");
 
             self.game.process_commands(self.net_if.get_commands());
+            self.net_if.send_telemetries(self.game.get_telemetries());
 
             let end = SystemTime::now();
             let end = end

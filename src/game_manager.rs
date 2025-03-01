@@ -41,7 +41,7 @@ impl GameManager {
     }
 
     /// Get the current telemetry to send.
-    pub fn get_telemetry(&self) -> Vec<ServerToGuiMsg> {
+    pub fn get_telemetries(&self) -> Vec<ServerToGuiMsg> {
         let mut result = Vec::new();
 
         // Always send the basic game status.

@@ -4,6 +4,7 @@ use crate::protocol::common;
 
 /// Labels for messages from the server to the GUI.
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum ServerToGuiLabel {
     /// Status of the current game.
     GameStatus = 1,
@@ -16,22 +17,24 @@ pub enum ServerToGuiMsg {
 
 /// Header for all messages.
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct Header {
     /// Message label.
-    label: ServerToGuiLabel,
+    pub label: ServerToGuiLabel,
 }
 
 /// Actual packet structure.
 #[repr(C, packed(1))]
 pub struct Packet<T> {
     /// Packet header.
-    header: Header,
+    pub header: Header,
     /// Packet payload.
-    payload: T,
+    pub payload: T,
 }
 
 /// Response to a connection request by a GUI.
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct GameStatusPld {
     /// True if a game is running, false otherwise.
     pub ongoing: bool,
