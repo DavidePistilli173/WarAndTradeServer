@@ -1,4 +1,6 @@
 /// In-game date.
+#[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct GameDate {
     /// Current day of the month. [1, 40]
     day: u8,

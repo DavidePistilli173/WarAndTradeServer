@@ -1,2 +1,3 @@
-pub mod game_data;
-pub mod game_date;
+pub mod common;
+pub mod data;
+pub mod date;

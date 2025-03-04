@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4.31"
+glob = "0.3.2"
 rwlog = { version = "0.1.0", path = "../rwlog" }

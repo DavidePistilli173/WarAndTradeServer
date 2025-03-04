@@ -1,6 +1,12 @@
 //! Messages from the server to the GUI.
 
-use crate::protocol::common;
+use crate::game::common;
+use crate::game::date::GameDate;
+
+use super::gui_to_server::STR_LEN;
+
+/// Maximum number of saved games.
+pub const MAX_SAVED_GAMES: usize = 32;
 
 /// Labels for messages from the server to the GUI.
 #[repr(u8)]
@@ -8,11 +14,15 @@ use crate::protocol::common;
 pub enum ServerToGuiLabel {
     /// Status of the current game.
     GameStatus = 1,
+    /// List of available saved games.
+    SavedGames = 2,
 }
 
 pub enum ServerToGuiMsg {
     /// Status of the current game.
     GameStatus(GameStatusPld),
+    /// List of available saved games.
+    SavedGames(SavedGamesPld),
 }
 
 /// Header for all messages.
@@ -32,7 +42,7 @@ pub struct Packet<T> {
     pub payload: T,
 }
 
-/// Response to a connection request by a GUI.
+/// Basic server and game status, sent continuously.
 #[repr(C, packed(1))]
 #[derive(Clone, Copy)]
 pub struct GameStatusPld {
@@ -40,4 +50,14 @@ pub struct GameStatusPld {
     pub ongoing: bool,
     /// Current game speed.
     pub speed: common::GameSpeed,
+    /// Current game date.
+    pub date: GameDate,
+}
+
+/// List of available saved games.
+#[repr(C, packed(1))]
+#[derive(Clone, Copy)]
+pub struct SavedGamesPld {
+    /// List of names of all available saved games.
+    pub saved_games: [[u8; STR_LEN]; MAX_SAVED_GAMES],
 }
