@@ -1,7 +1,7 @@
 use rwlog::sender::Logger;
 use std::net::{Ipv4Addr, UdpSocket};
 
-use crate::protocol::gui_to_server::{self, SaveGamePld, SetSpeedPld};
+use crate::protocol::gui_to_server::{self, DeleteSavedGamePld, SaveGamePld, SetSpeedPld};
 use crate::protocol::gui_to_server::{GuiToServerLabel, GuiToServerMsg, LoadGamePld, NewGamePld};
 use crate::protocol::server_to_gui::{self, ServerToGuiLabel, ServerToGuiMsg};
 
@@ -84,6 +84,13 @@ impl NetInterface {
                 }
                 GuiToServerLabel::LoadGame => {
                     result.push(decode_msg!(buff, LoadGamePld, GuiToServerMsg::LoadGame));
+                }
+                GuiToServerLabel::DeleteSavedGame => {
+                    result.push(decode_msg!(
+                        buff,
+                        DeleteSavedGamePld,
+                        GuiToServerMsg::DeleteSavedGame
+                    ));
                 }
                 GuiToServerLabel::SetSpeed => {
                     result.push(decode_msg!(buff, SetSpeedPld, GuiToServerMsg::SetSpeed));

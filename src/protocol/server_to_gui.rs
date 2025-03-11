@@ -2,11 +2,17 @@
 
 use crate::game::common;
 use crate::game::date::GameDate;
+use std::time::Duration;
 
-use super::gui_to_server::STR_LEN;
+use crate::protocol::common::STR_LEN;
 
 /// Maximum number of saved games.
 pub const MAX_SAVED_GAMES: usize = 32;
+
+/// Interval between game status messages.
+pub const GAME_STATUS_TIME: Duration = Duration::from_millis(10);
+/// Interval between saved games messages.
+pub const SAVED_GAMES_TIME: Duration = Duration::from_secs(2);
 
 /// Labels for messages from the server to the GUI.
 #[repr(u8)]

@@ -1,9 +1,7 @@
 //! Messages from the GUI to the server.
 
 use crate::game::common;
-
-/// Length of strings passed through the network.
-pub const STR_LEN: usize = 32;
+use crate::protocol::common::STR_LEN;
 
 /// Labels for messages from the GUI to the server.
 #[repr(u8)]
@@ -14,8 +12,10 @@ pub enum GuiToServerLabel {
     SaveGame = 2,
     /// Load an existing game.
     LoadGame = 3,
+    /// Delete an existing saved game.
+    DeleteSavedGame = 4,
     /// Set the game speed.
-    SetSpeed = 4,
+    SetSpeed = 5,
 }
 
 /// Actual enumeration containing all available messages.
@@ -26,6 +26,8 @@ pub enum GuiToServerMsg {
     SaveGame(SaveGamePld),
     /// Load an existing game.
     LoadGame(LoadGamePld),
+    /// Delete an existing saved game.
+    DeleteSavedGame(DeleteSavedGamePld),
     /// Set the game speed.
     SetSpeed(SetSpeedPld),
 }
@@ -65,6 +67,12 @@ pub struct SaveGamePld {
 pub struct LoadGamePld {
     /// Name of the game to load.
     /// If a game is currently running, it will be terminated without saving.
+    pub name: [u8; STR_LEN],
+}
+
+#[repr(C, packed(1))]
+pub struct DeleteSavedGamePld {
+    /// Name of the game to delete.
     pub name: [u8; STR_LEN],
 }
 
