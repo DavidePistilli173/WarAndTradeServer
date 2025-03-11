@@ -52,6 +52,7 @@ pub struct Packet<T> {
 #[repr(C, packed(1))]
 pub struct NewGamePld {
     /// Name of the player's civilisation.
+    /// NOT NULL TERMINATED.
     pub civ_name: [u8; STR_LEN],
 }
 
@@ -59,6 +60,7 @@ pub struct NewGamePld {
 pub struct SaveGamePld {
     /// Name of the save file (with no extension).
     /// If a save with the same name already exists, it will get overwritten.
+    /// /// NOT NULL TERMINATED.
     pub name: [u8; STR_LEN],
 }
 
@@ -67,12 +69,14 @@ pub struct SaveGamePld {
 pub struct LoadGamePld {
     /// Name of the game to load.
     /// If a game is currently running, it will be terminated without saving.
+    /// /// NOT NULL TERMINATED.
     pub name: [u8; STR_LEN],
 }
 
 #[repr(C, packed(1))]
 pub struct DeleteSavedGamePld {
     /// Name of the game to delete.
+    /// /// NOT NULL TERMINATED.
     pub name: [u8; STR_LEN],
 }
 

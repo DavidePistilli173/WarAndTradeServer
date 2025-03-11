@@ -1,7 +1,9 @@
 use crate::game::date::GameDate;
 use crate::protocol::gui_to_server::NewGamePld;
+use serde::{Deserialize, Serialize};
 
 /// Data for a single game.
+#[derive(Serialize, Deserialize)]
 pub struct GameData {
     /// Name of the player's civilisation.
     civ_name: String,

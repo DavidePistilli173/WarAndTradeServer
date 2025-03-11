@@ -65,5 +65,6 @@ pub struct GameStatusPld {
 #[derive(Clone, Copy)]
 pub struct SavedGamesPld {
     /// List of names of all available saved games.
+    /// /// NOT NULL TERMINATED.
     pub saved_games: [[u8; STR_LEN]; MAX_SAVED_GAMES],
 }

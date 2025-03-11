@@ -1,11 +1,16 @@
-use std::cell::RefCell;
+use core::str;
+use std::fs::{self, File};
+use std::io::Write;
 use std::time::SystemTime;
 
 use crate::game::common::{self, GameSpeed};
 use crate::game::data::GameData;
 use crate::protocol::common::STR_LEN;
 use crate::protocol::server_to_gui::{self, GameStatusPld, MAX_SAVED_GAMES, SavedGamesPld};
-use crate::protocol::{gui_to_server::GuiToServerMsg, server_to_gui::ServerToGuiMsg};
+use crate::protocol::{
+    gui_to_server::{self, GuiToServerMsg},
+    server_to_gui::ServerToGuiMsg,
+};
 use glob::glob;
 use rwlog::sender::Logger;
 
@@ -88,6 +93,11 @@ impl GameManager {
 
     /// Create a new game object.
     pub fn new(logger: Logger) -> Self {
+        // Initialise the game paths.
+        if let Err(err) = fs::create_dir_all(SAVE_FILE_PATH) {
+            rwlog::err!(&logger, "Failed to create save games path: {err}.");
+        }
+
         GameManager {
             logger,
             ongoing: false,
@@ -103,9 +113,11 @@ impl GameManager {
         for cmd in commands.iter() {
             match cmd {
                 GuiToServerMsg::NewGame(cmd_data) => {
-                    self.game_data = GameData::from_settings(cmd_data)
+                    self.process_new_game(cmd_data);
                 }
-                GuiToServerMsg::SaveGame(cmd_data) => {}
+                GuiToServerMsg::SaveGame(cmd_data) => {
+                    self.process_save_game(cmd_data);
+                }
                 GuiToServerMsg::LoadGame(cmd_data) => {}
                 GuiToServerMsg::DeleteSavedGame(cmd_data) => {}
                 GuiToServerMsg::SetSpeed(cmd_data) => self.speed = cmd_data.speed,
@@ -188,5 +200,44 @@ impl GameManager {
         }
 
         Some(SavedGamesPld { saved_games: array })
+    }
+
+    /// Process the NewGame command.
+    fn process_new_game(&mut self, cmd_data: &gui_to_server::NewGamePld) {
+        self.game_data = GameData::from_settings(cmd_data);
+        self.speed = GameSpeed::Paused;
+    }
+
+    /// Process the SaveGame command.
+    fn process_save_game(&self, cmd_data: &gui_to_server::SaveGamePld) {
+        let name = str::from_utf8(&cmd_data.name).unwrap_or_else(|err| {
+            rwlog::err!(
+                &self.logger,
+                "Failed to parse save game name: {err}. (Received {:?})",
+                cmd_data.name
+            );
+            "default_path"
+        });
+
+        let path = format!("{SAVE_FILE_PATH}/{name}.json");
+        let mut out_file = match File::create(path.clone()) {
+            Ok(x) => x,
+            Err(err) => {
+                rwlog::err!(&self.logger, "Failed to open save file {path}: {err}.");
+                return;
+            }
+        };
+
+        let saved_json = match serde_json::to_string(&self.game_data) {
+            Ok(x) => x,
+            Err(err) => {
+                rwlog::err!(&self.logger, "Failed to convert game data to json: {err}.");
+                return;
+            }
+        };
+
+        if let Err(err) = write!(out_file, "{saved_json}") {
+            rwlog::err!(&self.logger, "Failed to write data to file: {err}.");
+        }
     }
 }
