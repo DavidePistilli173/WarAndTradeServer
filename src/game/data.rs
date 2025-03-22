@@ -1,9 +1,9 @@
 use crate::game::date::GameDate;
-use crate::protocol::gui_to_server::NewGamePld;
+use crate::protocol::cmd;
 use serde::{Deserialize, Serialize};
 
 /// Data for a single game.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GameData {
     /// Name of the player's civilisation.
     civ_name: String,
@@ -18,9 +18,9 @@ impl GameData {
     }
 
     /// Create a new game from some settings.
-    pub fn from_settings(settings: &NewGamePld) -> Self {
+    pub fn from_settings(settings: &cmd::NewGamePld) -> Self {
         Self {
-            civ_name: String::from_utf8_lossy(&settings.civ_name).into_owned(),
+            civ_name: settings.civ_name.clone(),
             date: GameDate::new(1, 1, 1),
         }
     }
