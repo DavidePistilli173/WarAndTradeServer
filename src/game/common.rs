@@ -1,7 +1,9 @@
 //! Common type definitions.
 
+use serde::{Deserialize, Serialize};
+
 /// Available game speed levels.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub enum GameSpeed {
     /// The game is paused.
     Paused,

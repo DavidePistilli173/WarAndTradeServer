@@ -1,11 +1,19 @@
 //! Messages from the server to the GUI.
 
+use serde::{Deserialize, Serialize};
+
 use crate::game::common;
 use crate::game::date::GameDate;
 
+#[derive(Serialize, Deserialize)]
+pub enum Tlm {
+    GameStatus(GameStatusPld),
+    SavedGames(SavedGamesPld),
+}
+
 /// Basic server and game status, sent continuously.
-#[derive(Clone, Copy)]
-pub struct GameStatusTlm {
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct GameStatusPld {
     /// True if a game is running, false otherwise.
     pub ongoing: bool,
     /// Current game speed.
@@ -15,8 +23,8 @@ pub struct GameStatusTlm {
 }
 
 /// List of available saved games.
-#[derive(Clone)]
-pub struct SavedGamesTlm {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SavedGamesPld {
     /// List of names of all available saved games.
     pub saved_games: Vec<String>,
 }

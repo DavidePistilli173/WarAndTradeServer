@@ -7,7 +7,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::game;
 use crate::game_state::GameState;
 use crate::protocol::{cmd, tlm};
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use glob::glob;
 use rwlog::sender::Logger;
 use std::sync::{Arc, Mutex};
@@ -21,19 +21,15 @@ pub struct GameManager {
     logger: Logger,
     /// User commands.
     cmd_rx: Receiver<cmd::Cmd>,
+    /// Channel for sending telemetries.
+    tlm_tx: Sender<tlm::Tlm>,
     /// State variable used for running the game logic.
     state: GameState,
-    /// Game state shared with the external interface.
-    shared_state: Arc<Mutex<GameState>>,
 }
 
 impl GameManager {
     /// Create a new game object.
-    pub fn new(
-        logger: Logger,
-        shared_state: Arc<Mutex<GameState>>,
-        cmd_rx: Receiver<cmd::Cmd>,
-    ) -> Self {
+    pub fn new(logger: Logger, cmd_rx: Receiver<cmd::Cmd>, tlm_tx: Sender<tlm::Tlm>) -> Self {
         // Initialise the game paths.
         if let Err(err) = fs::create_dir_all(SAVE_FILE_PATH) {
             rwlog::err!(&logger, "Failed to create save games path: {err}.");
@@ -42,8 +38,8 @@ impl GameManager {
         GameManager {
             logger,
             cmd_rx,
+            tlm_tx,
             state: GameState::new(),
-            shared_state,
         }
     }
 
@@ -67,7 +63,7 @@ impl GameManager {
 
     // Main game loop. This function does not return.
     pub fn run(&mut self) {
-        const ITERATION_TIME: Duration = Duration::from_millis(10);
+        const ITERATION_TIME: Duration = Duration::from_millis(33);
 
         loop {
             let start = SystemTime::now();
@@ -77,7 +73,7 @@ impl GameManager {
 
             self.process_commands();
             self.simulate();
-            self.save_state();
+            self.send_periodic_telemetry();
 
             let end = SystemTime::now();
             let end = end
@@ -88,13 +84,26 @@ impl GameManager {
         }
     }
 
-    /// Save the current game state to the shared state.
-    fn save_state(&mut self) {
-        match self.shared_state.lock() {
-            Ok(mut shared_state) => *shared_state = self.state.clone(),
-            Err(err) => {
-                rwlog::err!(&self.logger, "Failed to lock shared state mutex: {err}.");
-            }
+    /// Send periodic telemetries.
+    fn send_periodic_telemetry(&mut self) {
+        self.update_saved_files();
+
+        let tlm = tlm::Tlm::GameStatus(tlm::GameStatusPld {
+            ongoing: self.state.ongoing,
+            speed: self.state.speed,
+            date: *self.state.game_data.date(),
+        });
+
+        if let Err(err) = self.tlm_tx.send(tlm) {
+            rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
+        }
+
+        let tlm = tlm::Tlm::SavedGames(tlm::SavedGamesPld {
+            saved_games: self.state.saved_games.clone(),
+        });
+
+        if let Err(err) = self.tlm_tx.send(tlm) {
+            rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
         }
     }
 
