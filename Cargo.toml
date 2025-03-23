@@ -5,7 +5,7 @@ edition = "2024"
 resolver = "3"
 
 [dependencies]
-axum = "0.8.1"
+axum = { version = "0.8.1", features = ["ws"] }
 chrono = "0.4.31"
 crossbeam-channel = "0.5.14"
 glob = "0.3.2"

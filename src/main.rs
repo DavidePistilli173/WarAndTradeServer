@@ -3,6 +3,7 @@ pub mod game_manager;
 pub mod game_state;
 pub mod protocol;
 
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -16,6 +17,46 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::net::TcpListener;
 
+#[derive(Clone)]
+struct WebSocketState {
+    game_state: Arc<Mutex<GameState>>,
+    cmd_tx: Sender<protocol::cmd::Cmd>,
+}
+
+async fn websocket_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<WebSocketState>,
+) -> impl axum::response::IntoResponse {
+    ws.on_upgrade(move |socket| async move {
+        handle_socket(socket, &state).await;
+    })
+}
+
+async fn handle_socket(mut socket: WebSocket, game_state: &WebSocketState) {
+    // Send a greeting message to the client
+    if let Err(e) = socket.send(Message::text("Hello from the server!")).await {
+        eprintln!("Error sending message: {}", e);
+        return;
+    }
+
+    // Loop to keep the connection alive
+    while let Some(Ok(msg)) = socket.recv().await {
+        match msg {
+            Message::Text(msg) => {
+                println!("Received message: {}", msg);
+                if let Err(e) = socket.send(Message::text(format!("Echo: {}", msg))).await {
+                    eprintln!("Error sending message: {}", e);
+                }
+            }
+            Message::Close(_) => {
+                println!("Closing WebSocket connection.");
+                break;
+            }
+            _ => {}
+        }
+    }
+}
+
 async fn hello_world() -> &'static str {
     "Hello, World!"
 }
@@ -23,13 +64,6 @@ async fn hello_world() -> &'static str {
 #[derive(Serialize, Deserialize)]
 struct MyStruct {
     my_field: String,
-}
-
-async fn return_game_state(State(state): State<Arc<Mutex<GameState>>>) -> impl IntoResponse {
-    match state.lock() {
-        Ok(game_state) => (StatusCode::OK, Json(game_state.clone())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
 }
 
 fn run_game_thread(
@@ -48,10 +82,15 @@ async fn run_http_server(
     shared_state: Arc<Mutex<GameState>>,
     cmd_tx: Sender<protocol::cmd::Cmd>,
 ) {
+    let websocket_state = WebSocketState {
+        game_state: shared_state.clone(),
+        cmd_tx: cmd_tx.clone(),
+    };
+
     let router = Router::new()
         .route("/", get(hello_world))
-        .route("/json", get(return_game_state))
-        .with_state(shared_state.clone());
+        .route("/ws", get(websocket_handler))
+        .with_state(websocket_state);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     let tcp = match TcpListener::bind(&addr).await {
         Ok(x) => x,
