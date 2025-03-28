@@ -9,6 +9,7 @@ use crate::game::date::GameDate;
 pub enum Tlm {
     GameStatus(GameStatusPld),
     SavedGames(SavedGamesPld),
+    CivData(CivDataPld),
 }
 
 /// Basic server and game status, sent continuously.
@@ -27,4 +28,11 @@ pub struct GameStatusPld {
 pub struct SavedGamesPld {
     /// List of names of all available saved games.
     pub saved_games: Vec<String>,
+}
+
+/// Player civilization data.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct CivDataPld {
+    /// Name of the civilization.
+    pub civ_name: String,
 }

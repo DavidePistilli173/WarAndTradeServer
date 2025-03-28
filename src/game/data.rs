@@ -12,6 +12,11 @@ pub struct GameData {
 }
 
 impl GameData {
+    /// Get the current civilisation name.
+    pub fn civ_name(&self) -> &String {
+        &self.civ_name
+    }
+
     /// Get the current game date.
     pub fn date(&self) -> &GameDate {
         &self.date

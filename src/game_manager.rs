@@ -23,6 +23,8 @@ pub struct GameManager {
     cmd_rx: Receiver<cmd::Cmd>,
     /// Channel for sending telemetries.
     tlm_tx: Sender<tlm::Tlm>,
+    /// Loop control variable.
+    active: bool,
     /// State variable used for running the game logic.
     state: GameState,
 }
@@ -39,14 +41,14 @@ impl GameManager {
             logger,
             cmd_rx,
             tlm_tx,
+            active: false,
             state: GameState::new(),
         }
     }
 
     /// Process a list of commands.
     fn process_commands(&mut self) {
-        let commands: Vec<cmd::Cmd> = self.cmd_rx.iter().collect();
-        for cmd in commands {
+        while let Ok(cmd) = self.cmd_rx.try_recv() {
             match cmd {
                 cmd::Cmd::NewGame(cmd_data) => {
                     self.process_new_game(&cmd_data);
@@ -57,6 +59,9 @@ impl GameManager {
                 cmd::Cmd::LoadGame(cmd_data) => {}
                 cmd::Cmd::DeleteSavedGame(cmd_data) => {}
                 cmd::Cmd::SetSpeed(cmd_data) => self.state.speed = cmd_data.speed,
+                cmd::Cmd::CloseServer() => {
+                    self.active = false;
+                }
             }
         }
     }
@@ -64,8 +69,9 @@ impl GameManager {
     // Main game loop. This function does not return.
     pub fn run(&mut self) {
         const ITERATION_TIME: Duration = Duration::from_millis(33);
+        self.active = true;
 
-        loop {
+        while self.active {
             let start = SystemTime::now();
             let start = start
                 .duration_since(UNIX_EPOCH)
@@ -104,6 +110,15 @@ impl GameManager {
 
         if let Err(err) = self.tlm_tx.send(tlm) {
             rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
+        }
+
+        if self.state.ongoing {
+            let tlm = tlm::Tlm::CivData(tlm::CivDataPld {
+                civ_name: self.state.game_data.civ_name().clone(),
+            });
+            if let Err(err) = self.tlm_tx.send(tlm) {
+                rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
+            }
         }
     }
 
@@ -151,6 +166,7 @@ impl GameManager {
     fn process_new_game(&mut self, cmd_data: &cmd::NewGamePld) {
         self.state.game_data = game::data::GameData::from_settings(cmd_data);
         self.state.speed = game::common::GameSpeed::Paused;
+        self.state.ongoing = true;
     }
 
     /// Process the SaveGame command.

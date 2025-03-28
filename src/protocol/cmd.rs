@@ -16,6 +16,8 @@ pub enum Cmd {
     DeleteSavedGame(DeleteSavedGamePld),
     /// Set the game speed.
     SetSpeed(SetSpeedPld),
+    /// Close the server.
+    CloseServer(),
 }
 
 /// Command for starting a new game.
