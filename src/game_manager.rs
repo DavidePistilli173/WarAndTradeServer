@@ -5,12 +5,10 @@ use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::game;
-use crate::game_state::GameState;
-use crate::protocol::{cmd, tlm};
+use crate::protocol::{cmd, interface::ServerState, tlm};
 use crossbeam_channel::{Receiver, Sender};
 use glob::glob;
 use rwlog::sender::Logger;
-use std::sync::{Arc, Mutex};
 
 /// Path where the save files are stored, relative to the executable.
 pub const SAVE_FILE_PATH: &'static str = "saved_games";
@@ -26,7 +24,7 @@ pub struct GameManager {
     /// Loop control variable.
     active: bool,
     /// State variable used for running the game logic.
-    state: GameState,
+    state: ServerState,
 }
 
 impl GameManager {
@@ -42,7 +40,7 @@ impl GameManager {
             cmd_rx,
             tlm_tx,
             active: false,
-            state: GameState::new(),
+            state: ServerState::new(),
         }
     }
 
@@ -56,9 +54,19 @@ impl GameManager {
                 cmd::Cmd::SaveGame(cmd_data) => {
                     self.process_save_game(&cmd_data);
                 }
+                cmd::Cmd::ReqSavedGamesList => {
+                    self.send_tlm(tlm::Tlm::SavedGames(self.state.saved_games.clone()))
+                }
                 cmd::Cmd::LoadGame(cmd_data) => {}
                 cmd::Cmd::DeleteSavedGame(cmd_data) => {}
-                cmd::Cmd::SetSpeed(cmd_data) => self.state.speed = cmd_data.speed,
+                cmd::Cmd::SetSpeed(cmd_data) => {
+                    self.state.game_speed = cmd_data.speed;
+                    self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+                }
+                cmd::Cmd::StopGame => {
+                    self.state.game_running = false;
+                    self.send_tlm(tlm::Tlm::GameStopped);
+                }
                 cmd::Cmd::CloseServer() => {
                     self.active = false;
                 }
@@ -90,46 +98,28 @@ impl GameManager {
         }
     }
 
+    /// Send a single telemetry.
+    fn send_tlm(&self, tlm: tlm::Tlm) {
+        if let Err(err) = self.tlm_tx.send(tlm) {
+            rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
+        }
+    }
+
     /// Send periodic telemetries.
     fn send_periodic_telemetry(&mut self) {
         self.update_saved_files();
 
-        let tlm = tlm::Tlm::GameStatus(tlm::GameStatusPld {
-            ongoing: self.state.ongoing,
-            speed: self.state.speed,
-            date: *self.state.game_data.date(),
-        });
-
-        if let Err(err) = self.tlm_tx.send(tlm) {
-            rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
-        }
-
-        let tlm = tlm::Tlm::SavedGames(tlm::SavedGamesPld {
-            saved_games: self.state.saved_games.clone(),
-        });
-
-        if let Err(err) = self.tlm_tx.send(tlm) {
-            rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
-        }
-
-        if self.state.ongoing {
-            let tlm = tlm::Tlm::CivData(tlm::CivDataPld {
-                civ_name: self.state.game_data.civ_name().clone(),
-            });
-            if let Err(err) = self.tlm_tx.send(tlm) {
-                rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
-            }
-        }
+        self.send_tlm(tlm::Tlm::GameState(self.state.game_state.clone()));
     }
 
     /// Run the game logic at the appropriate speed, if a game is running.
     fn simulate(&mut self) {
-        match self.state.speed {
-            game::common::GameSpeed::Speed1X => self.state.game_data.simulate(1),
-            game::common::GameSpeed::Speed2X => self.state.game_data.simulate(2),
-            game::common::GameSpeed::Speed4X => self.state.game_data.simulate(4),
-            game::common::GameSpeed::Speed10X => self.state.game_data.simulate(10),
-            game::common::GameSpeed::Speed40X => self.state.game_data.simulate(40),
+        match self.state.game_speed {
+            game::common::GameSpeed::Speed1X => self.state.game_state.simulate(1),
+            game::common::GameSpeed::Speed2X => self.state.game_state.simulate(2),
+            game::common::GameSpeed::Speed4X => self.state.game_state.simulate(4),
+            game::common::GameSpeed::Speed10X => self.state.game_state.simulate(10),
+            game::common::GameSpeed::Speed40X => self.state.game_state.simulate(40),
             _ => {}
         }
     }
@@ -155,7 +145,7 @@ impl GameManager {
             }
         }
 
-        self.state.saved_games = paths
+        self.state.saved_games.saved_games = paths
             .iter()
             .filter_map(|path_buf| path_buf.to_str())
             .map(|str| str.to_string())
@@ -164,9 +154,13 @@ impl GameManager {
 
     /// Process the NewGame command.
     fn process_new_game(&mut self, cmd_data: &cmd::NewGamePld) {
-        self.state.game_data = game::data::GameData::from_settings(cmd_data);
-        self.state.speed = game::common::GameSpeed::Paused;
-        self.state.ongoing = true;
+        self.state.game_state = game::world::World::from_settings(cmd_data);
+
+        self.state.game_speed = game::common::GameSpeed::Paused;
+        self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+
+        self.state.game_running = true;
+        self.send_tlm(tlm::Tlm::GameStarted);
     }
 
     /// Process the SaveGame command.
@@ -180,7 +174,7 @@ impl GameManager {
             }
         };
 
-        let saved_json = match serde_json::to_string(&self.state.game_data) {
+        let saved_json = match serde_json::to_string(&self.state.game_state) {
             Ok(x) => x,
             Err(err) => {
                 rwlog::err!(&self.logger, "Failed to convert game data to json: {err}.");

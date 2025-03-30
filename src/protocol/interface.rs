@@ -1,30 +1,26 @@
 use crate::game::common::GameSpeed;
-use crate::game::date::GameDate;
+use crate::game::world::World;
 use crate::protocol::{cmd, tlm};
 use crossbeam_channel::{Receiver, Sender};
 use rwlog::sender::Logger;
 
 /// Overall state of the server containing the latest telemetries from the server.
 pub struct ServerState {
-    pub game_status: tlm::GameStatusPld,
+    pub game_running: bool,
+    pub game_speed: GameSpeed,
+    pub game_state: World,
     pub saved_games: tlm::SavedGamesPld,
-    pub civ_data: tlm::CivDataPld,
 }
 
 impl ServerState {
     /// Create a new server state.
     pub fn new() -> Self {
         Self {
-            game_status: tlm::GameStatusPld {
-                ongoing: false,
-                speed: GameSpeed::Paused,
-                date: GameDate::new(0, 0, 1),
-            },
+            game_running: false,
+            game_speed: GameSpeed::Paused,
+            game_state: World::new(),
             saved_games: tlm::SavedGamesPld {
                 saved_games: Vec::new(),
-            },
-            civ_data: tlm::CivDataPld {
-                civ_name: "NO NAME".to_string(),
             },
         }
     }
@@ -54,15 +50,11 @@ impl Interface {
     pub fn receive_telemetries(&self, server_state: &mut ServerState) {
         while let Ok(tlm) = self.tlm_rx.try_recv() {
             match tlm {
-                tlm::Tlm::GameStatus(pld) => {
-                    server_state.game_status = pld;
-                }
-                tlm::Tlm::SavedGames(pld) => {
-                    server_state.saved_games = pld;
-                }
-                tlm::Tlm::CivData(pld) => {
-                    server_state.civ_data = pld;
-                }
+                tlm::Tlm::GameStarted => server_state.game_running = true,
+                tlm::Tlm::GameStopped => server_state.game_running = false,
+                tlm::Tlm::GameState(new_state) => server_state.game_state = new_state,
+                tlm::Tlm::SavedGames(list) => server_state.saved_games = list,
+                tlm::Tlm::SpeedChanged(new_speed) => server_state.game_speed = new_speed,
             }
         }
     }

@@ -3,24 +3,20 @@
 use serde::{Deserialize, Serialize};
 
 use crate::game::common;
-use crate::game::date::GameDate;
+use crate::game::world::World;
 
 #[derive(Serialize, Deserialize)]
 pub enum Tlm {
-    GameStatus(GameStatusPld),
+    /// Communicate that a game has started.
+    GameStarted,
+    /// Communicate that the running game has stopped.
+    GameStopped,
+    /// State of the current game.
+    GameState(World),
+    /// List of saved games.
     SavedGames(SavedGamesPld),
-    CivData(CivDataPld),
-}
-
-/// Basic server and game status, sent continuously.
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct GameStatusPld {
-    /// True if a game is running, false otherwise.
-    pub ongoing: bool,
-    /// Current game speed.
-    pub speed: common::GameSpeed,
-    /// Current game date.
-    pub date: GameDate,
+    /// The game speed has changed.
+    SpeedChanged(common::GameSpeed),
 }
 
 /// List of available saved games.
@@ -28,11 +24,4 @@ pub struct GameStatusPld {
 pub struct SavedGamesPld {
     /// List of names of all available saved games.
     pub saved_games: Vec<String>,
-}
-
-/// Player civilization data.
-#[derive(Clone, Serialize, Deserialize)]
-pub struct CivDataPld {
-    /// Name of the civilization.
-    pub civ_name: String,
 }

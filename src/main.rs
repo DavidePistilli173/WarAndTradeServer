@@ -1,6 +1,5 @@
 pub mod game;
 pub mod game_manager;
-pub mod game_state;
 pub mod protocol;
 pub mod ui;
 
@@ -33,7 +32,12 @@ fn main() {
     // Create the game logic thread.
     let server_thread = run_game_thread(logger.clone(), cmd_rx, tlm_tx);
 
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title("WarAndTrade")
+            .with_inner_size((1600f32, 900f32)),
+        ..Default::default()
+    };
     if let Err(err) = eframe::run_native(
         "WarAndTrade",
         native_options,

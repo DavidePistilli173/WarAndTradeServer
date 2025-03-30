@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 
 /// Data for a single game.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct GameData {
+pub struct World {
     /// Name of the player's civilisation.
     civ_name: String,
     /// Current game date.
     date: GameDate,
 }
 
-impl GameData {
+impl World {
     /// Get the current civilisation name.
     pub fn civ_name(&self) -> &String {
         &self.civ_name

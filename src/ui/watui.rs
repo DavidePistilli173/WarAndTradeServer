@@ -48,7 +48,7 @@ impl WATUI {
 
     fn handle_gameplay(&mut self, ui: &mut Ui) {
         ui.vertical_centered(|ui| {
-            ui.label(&self.server_state.civ_data.civ_name);
+            ui.label(self.server_state.game_state.civ_name());
         });
     }
 }
@@ -58,7 +58,7 @@ impl eframe::App for WATUI {
         self.interface.receive_telemetries(&mut self.server_state); // Get telemetries from the server.
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.server_state.game_status.ongoing {
+            if self.server_state.game_running {
                 self.handle_gameplay(ui);
             } else {
                 self.ui_state.main_menu.update(ui, &self.interface);

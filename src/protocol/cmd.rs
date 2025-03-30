@@ -10,12 +10,16 @@ pub enum Cmd {
     NewGame(NewGamePld),
     /// Save the current game.
     SaveGame(SaveGamePld),
+    /// Request the list of saved games.
+    ReqSavedGamesList,
     /// Load an existing game.
     LoadGame(LoadGamePld),
     /// Delete an existing saved game.
     DeleteSavedGame(DeleteSavedGamePld),
     /// Set the game speed.
     SetSpeed(SetSpeedPld),
+    /// Stop the game and return to the main menu.
+    StopGame,
     /// Close the server.
     CloseServer(),
 }
