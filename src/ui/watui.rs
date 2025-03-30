@@ -49,10 +49,6 @@ impl WATUI {
             },
         }
     }
-
-    fn handle_gameplay(&mut self, ui: &mut Ui) {
-        ui.vertical_centered(|ui| {});
-    }
 }
 
 impl eframe::App for WATUI {

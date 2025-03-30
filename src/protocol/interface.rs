@@ -50,6 +50,13 @@ impl Interface {
     pub fn receive_telemetries(&self, server_state: &mut ServerState) {
         while let Ok(tlm) = self.tlm_rx.try_recv() {
             match tlm {
+                tlm::Tlm::GameState(_) => {}
+                _ => {
+                    rwlog::info!(&self.logger, "Received telemetry: {:?}", tlm);
+                }
+            }
+
+            match tlm {
                 tlm::Tlm::GameStarted => server_state.game_running = true,
                 tlm::Tlm::GameStopped => server_state.game_running = false,
                 tlm::Tlm::GameState(new_state) => server_state.game_state = new_state,

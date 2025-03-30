@@ -16,6 +16,7 @@ impl NewGameState {
                 interface.send_command_to_server(cmd::Cmd::NewGame(cmd::NewGamePld {
                     civ_name: self.civ_name.clone(),
                 }));
+                *scene = MainMenuScene::MainMenu;
             }
 
             if ui.button("Back").clicked() {

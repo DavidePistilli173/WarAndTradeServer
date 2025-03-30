@@ -1,5 +1,5 @@
 use core::str;
-use std::fs::{self, File};
+use std::fs::{self, File, remove_file};
 use std::io::{Read, Write};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -59,7 +59,9 @@ impl GameManager {
                     self.send_tlm(tlm::Tlm::SavedGames(self.state.saved_games.clone()))
                 }
                 cmd::Cmd::LoadGame(cmd_data) => self.process_load_game(&cmd_data),
-                cmd::Cmd::DeleteSavedGame(cmd_data) => {}
+                cmd::Cmd::DeleteSavedGame(cmd_data) => {
+                    self.process_delete_game(&cmd_data);
+                }
                 cmd::Cmd::SetSpeed(cmd_data) => {
                     self.state.game_speed = cmd_data.speed;
                     self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
@@ -248,5 +250,18 @@ impl GameManager {
                 }
             }
         }
+    }
+
+    /// Process the DeleteGame command.
+    fn process_delete_game(&mut self, cmd_data: &cmd::DeleteSavedGamePld) {
+        if let Err(err) = remove_file(&cmd_data.name) {
+            rwlog::err!(
+                &self.logger,
+                "Failed to delete saved game: {}, {err}",
+                cmd_data.name
+            );
+        }
+
+        self.update_saved_files();
     }
 }
