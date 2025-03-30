@@ -161,13 +161,6 @@ impl GameManager {
                 if current_time - self.last_sim_time < self.time_per_day {
                     return;
                 }
-                rwlog::trace!(
-                    &self.logger,
-                    "Simulating, time_per_day: {}, last_sim_time: {}, current_time: {}",
-                    self.time_per_day.as_millis(),
-                    self.last_sim_time.as_millis(),
-                    current_time.as_millis()
-                );
 
                 self.last_sim_time = current_time;
                 self.state.game_state.simulate(1);

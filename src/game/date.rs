@@ -29,14 +29,19 @@ pub const MAX_MONTH: u8 = 10;
 impl GameDate {
     /// Add a certain number of days to the date.
     pub fn add_days(&mut self, days: u16) {
-        let mut tmp_date: u32 = self.day as u32 + days as u32;
-        self.day = (tmp_date % MAX_DAY as u32) as u8;
+        let mut day = self.day - MIN_DAY;
+        let mut month = self.month - MIN_MONTH;
 
-        tmp_date = (tmp_date - self.day as u32) / MAX_DAY as u32;
-        tmp_date = tmp_date + self.month as u32;
-        self.month = (tmp_date & MAX_MONTH as u32) as u8;
+        let mut tmp_date: u32 = day as u32 + days as u32;
+        day = (tmp_date % MAX_DAY as u32) as u8;
+        self.day = day + MIN_DAY;
 
-        tmp_date = (tmp_date - self.month as u32) / MAX_MONTH as u32;
+        tmp_date = (tmp_date - day as u32) / MAX_DAY as u32;
+        tmp_date = tmp_date + month as u32;
+        month = (tmp_date % MAX_MONTH as u32) as u8;
+        self.month = month + MIN_MONTH;
+
+        tmp_date = (tmp_date - month as u32) / MAX_MONTH as u32;
         self.year += tmp_date as u16;
     }
 
