@@ -5,6 +5,7 @@ use crate::{
         self,
         interface::{Interface, ServerState},
     },
+    ui::gameplay::main_scene::MainScene,
     ui::main_menu::main_menu::MainMenuState,
 };
 use crossbeam_channel::{Receiver, Sender};
@@ -15,6 +16,8 @@ use rwlog::sender::Logger;
 struct UiState {
     /// Game's main menu.
     main_menu: MainMenuState,
+    /// Main gameplay scene.
+    main_scene: MainScene,
 }
 
 pub struct WATUI {
@@ -42,14 +45,13 @@ impl WATUI {
             server_state: ServerState::new(),
             ui_state: UiState {
                 main_menu: MainMenuState::new(),
+                main_scene: MainScene::new(),
             },
         }
     }
 
     fn handle_gameplay(&mut self, ui: &mut Ui) {
-        ui.vertical_centered(|ui| {
-            ui.label(self.server_state.game_state.civ_name());
-        });
+        ui.vertical_centered(|ui| {});
     }
 }
 
@@ -59,7 +61,9 @@ impl eframe::App for WATUI {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.server_state.game_running {
-                self.handle_gameplay(ui);
+                self.ui_state
+                    .main_scene
+                    .update(ui, &self.interface, &self.server_state);
             } else {
                 self.ui_state
                     .main_menu
