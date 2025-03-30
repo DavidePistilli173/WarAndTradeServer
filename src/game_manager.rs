@@ -1,7 +1,8 @@
 use core::str;
+use std::alloc::System;
 use std::fs::{self, File, remove_file};
 use std::io::{Read, Write};
-use std::thread::sleep;
+use std::thread::{current, sleep};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::game;
@@ -13,6 +14,12 @@ use rwlog::sender::Logger;
 
 /// Path where the save files are stored, relative to the executable.
 pub const SAVE_FILE_PATH: &'static str = "saved_games";
+
+/// Time for each main loop iteration.
+const ITERATION_TIME: Duration = Duration::from_millis(25);
+
+/// Reference time for the game speed.
+const REFERENCE_TIME: Duration = Duration::from_secs(1);
 
 /// Struct containing the actual game logic.
 pub struct GameManager {
@@ -26,6 +33,10 @@ pub struct GameManager {
     active: bool,
     /// State variable used for running the game logic.
     state: ServerState,
+    /// Time that needs to pass before simulating one day.
+    time_per_day: Duration,
+    /// Last time when the simulation was updated.
+    last_sim_time: Duration,
 }
 
 impl GameManager {
@@ -42,6 +53,8 @@ impl GameManager {
             tlm_tx,
             active: false,
             state: ServerState::new(),
+            time_per_day: Duration::from_millis(0),
+            last_sim_time: Duration::from_millis(0),
         }
     }
 
@@ -63,8 +76,7 @@ impl GameManager {
                     self.process_delete_game(&cmd_data);
                 }
                 cmd::Cmd::SetSpeed(cmd_data) => {
-                    self.state.game_speed = cmd_data.speed;
-                    self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+                    self.set_speed(cmd_data.speed);
                 }
                 cmd::Cmd::StopGame => {
                     self.state.game_running = false;
@@ -79,7 +91,6 @@ impl GameManager {
 
     // Main game loop. This function does not return.
     pub fn run(&mut self) {
-        const ITERATION_TIME: Duration = Duration::from_millis(33);
         self.active = true;
 
         while self.active {
@@ -124,15 +135,44 @@ impl GameManager {
         self.send_tlm(tlm::Tlm::GameState(self.state.game_state.clone()));
     }
 
+    fn set_speed(&mut self, speed: GameSpeed) {
+        self.state.game_speed = speed;
+
+        match speed {
+            GameSpeed::Paused => self.time_per_day = Duration::from_millis(0),
+            GameSpeed::Speed1X => self.time_per_day = REFERENCE_TIME / 1,
+            GameSpeed::Speed2X => self.time_per_day = REFERENCE_TIME / 2,
+            GameSpeed::Speed4X => self.time_per_day = REFERENCE_TIME / 4,
+            GameSpeed::Speed10X => self.time_per_day = REFERENCE_TIME / 10,
+            GameSpeed::Speed40X => self.time_per_day = REFERENCE_TIME / 40,
+        }
+
+        self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+    }
+
     /// Run the game logic at the appropriate speed, if a game is running.
     fn simulate(&mut self) {
         match self.state.game_speed {
-            game::common::GameSpeed::Speed1X => self.state.game_state.simulate(1),
-            game::common::GameSpeed::Speed2X => self.state.game_state.simulate(2),
-            game::common::GameSpeed::Speed4X => self.state.game_state.simulate(4),
-            game::common::GameSpeed::Speed10X => self.state.game_state.simulate(10),
-            game::common::GameSpeed::Speed40X => self.state.game_state.simulate(40),
-            _ => {}
+            GameSpeed::Paused => {}
+            _ => {
+                let current_time = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Time went backwards.");
+
+                if current_time - self.last_sim_time < self.time_per_day {
+                    return;
+                }
+                rwlog::trace!(
+                    &self.logger,
+                    "Simulating, time_per_day: {}, last_sim_time: {}, current_time: {}",
+                    self.time_per_day.as_millis(),
+                    self.last_sim_time.as_millis(),
+                    current_time.as_millis()
+                );
+
+                self.last_sim_time = current_time;
+                self.state.game_state.simulate(1);
+            }
         }
     }
 
@@ -168,8 +208,7 @@ impl GameManager {
     fn process_new_game(&mut self, cmd_data: &cmd::NewGamePld) {
         self.state.game_state = game::world::World::from_settings(cmd_data);
 
-        self.state.game_speed = game::common::GameSpeed::Paused;
-        self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+        self.set_speed(GameSpeed::Paused);
 
         self.state.game_running = true;
         self.send_tlm(tlm::Tlm::GameStarted);
@@ -236,8 +275,7 @@ impl GameManager {
                 Ok(x) => {
                     self.state.game_state = x;
 
-                    self.state.game_speed = GameSpeed::Paused;
-                    self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+                    self.set_speed(GameSpeed::Paused);
 
                     self.state.game_running = true;
                     self.send_tlm(tlm::Tlm::GameStarted);

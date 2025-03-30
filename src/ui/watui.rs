@@ -68,5 +68,7 @@ impl eframe::App for WATUI {
                     .update(ui, &self.interface, &self.server_state);
             }
         });
+
+        ctx.request_repaint();
     }
 }

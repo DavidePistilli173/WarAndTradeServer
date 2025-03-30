@@ -1,15 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 /// In-game date.
-#[repr(C, packed(1))]
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct GameDate {
     /// Current day of the month. [1, 40]
-    day: u8,
+    pub day: u8,
     /// Current month of the year. [1, 10]
-    month: u8,
+    pub month: u8,
     /// Current year. [1, ..]
-    year: u16,
+    pub year: u16,
 }
 
 /// Minimum valid day.
