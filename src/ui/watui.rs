@@ -61,7 +61,9 @@ impl eframe::App for WATUI {
             if self.server_state.game_running {
                 self.handle_gameplay(ui);
             } else {
-                self.ui_state.main_menu.update(ui, &self.interface);
+                self.ui_state
+                    .main_menu
+                    .update(ui, &self.interface, &self.server_state);
             }
         });
     }

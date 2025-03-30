@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Available game speed levels.
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
 pub enum GameSpeed {
     /// The game is paused.
     Paused,

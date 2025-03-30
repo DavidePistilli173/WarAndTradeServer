@@ -1,5 +1,6 @@
 use crate::protocol::cmd;
 use crate::protocol::interface::Interface;
+use crate::protocol::interface::ServerState;
 use crate::ui::main_menu::{
     load_game::LoadGameState, new_game::NewGameState, options::OptionsState,
 };
@@ -35,14 +36,12 @@ impl MainMenuState {
             new_game: NewGameState {
                 civ_name: "My Civ".to_string(),
             },
-            load_game: LoadGameState {
-                file_list: Vec::new(),
-            },
+            load_game: LoadGameState {},
             options: OptionsState {},
         }
     }
 
-    pub fn update(&mut self, ui: &mut Ui, interface: &Interface) {
+    pub fn update(&mut self, ui: &mut Ui, interface: &Interface, server_state: &ServerState) {
         match self.scene {
             MainMenuScene::MainMenu => {
                 ui.vertical_centered(|ui| ui.heading("War And Trade"));
@@ -52,6 +51,7 @@ impl MainMenuState {
                     }
 
                     if ui.button("Load Game").clicked() {
+                        interface.send_command_to_server(cmd::Cmd::ReqSavedGamesList);
                         self.scene = MainMenuScene::LoadGame;
                     }
 
@@ -61,7 +61,10 @@ impl MainMenuState {
                 });
             }
             MainMenuScene::NewGame => self.new_game.update(ui, interface, &mut self.scene),
-            MainMenuScene::LoadGame => self.load_game.update(ui, interface, &mut self.scene),
+            MainMenuScene::LoadGame => {
+                self.load_game
+                    .update(ui, interface, &mut self.scene, server_state)
+            }
             MainMenuScene::Options => self.options.update(ui, interface, &mut self.scene),
         }
     }

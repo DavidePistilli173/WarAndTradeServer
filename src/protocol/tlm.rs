@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::game::common;
 use crate::game::world::World;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Tlm {
     /// Communicate that a game has started.
     GameStarted,
@@ -20,7 +20,7 @@ pub enum Tlm {
 }
 
 /// List of available saved games.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct SavedGamesPld {
     /// List of names of all available saved games.
     pub saved_games: Vec<String>,

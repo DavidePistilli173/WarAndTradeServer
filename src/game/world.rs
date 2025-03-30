@@ -3,7 +3,7 @@ use crate::protocol::cmd;
 use serde::{Deserialize, Serialize};
 
 /// Data for a single game.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct World {
     /// Name of the player's civilisation.
     civ_name: String,

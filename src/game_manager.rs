@@ -1,10 +1,11 @@
 use core::str;
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::game;
+use crate::game::common::GameSpeed;
 use crate::protocol::{cmd, interface::ServerState, tlm};
 use crossbeam_channel::{Receiver, Sender};
 use glob::glob;
@@ -57,7 +58,7 @@ impl GameManager {
                 cmd::Cmd::ReqSavedGamesList => {
                     self.send_tlm(tlm::Tlm::SavedGames(self.state.saved_games.clone()))
                 }
-                cmd::Cmd::LoadGame(cmd_data) => {}
+                cmd::Cmd::LoadGame(cmd_data) => self.process_load_game(&cmd_data),
                 cmd::Cmd::DeleteSavedGame(cmd_data) => {}
                 cmd::Cmd::SetSpeed(cmd_data) => {
                     self.state.game_speed = cmd_data.speed;
@@ -100,6 +101,15 @@ impl GameManager {
 
     /// Send a single telemetry.
     fn send_tlm(&self, tlm: tlm::Tlm) {
+        // Only log non-periodic telemetries.
+        match tlm {
+            tlm::Tlm::GameState(_) => {}
+            _ => {
+                rwlog::info!(&self.logger, "Sending telemetry: {:?}", tlm);
+            }
+        }
+
+        // Send the telemetry.
         if let Err(err) = self.tlm_tx.send(tlm) {
             rwlog::err!(&self.logger, "Failed to send telemetry: {err}.");
         }
@@ -184,6 +194,59 @@ impl GameManager {
 
         if let Err(err) = write!(out_file, "{saved_json}") {
             rwlog::err!(&self.logger, "Failed to write data to file: {err}.");
+        }
+    }
+
+    /// Process the LoadGame command.
+    fn process_load_game(&mut self, cmd_data: &cmd::LoadGamePld) {
+        if let Some(_) = self
+            .state
+            .saved_games
+            .saved_games
+            .iter()
+            .find(|item| **item == cmd_data.name)
+        {
+            // Compose the file path.
+            let file_path = &cmd_data.name;
+
+            // Read and deserialize the data.
+            let mut file = match File::open(&cmd_data.name) {
+                Ok(x) => x,
+                Err(err) => {
+                    rwlog::err!(
+                        &self.logger,
+                        "Failed to open saved file: {file_path}, {err}"
+                    );
+                    return;
+                }
+            };
+
+            let mut contents = String::new();
+            if let Err(err) = file.read_to_string(&mut contents) {
+                rwlog::err!(
+                    &self.logger,
+                    "Failed to read saved file: {file_path}, {err}"
+                );
+                return;
+            }
+
+            match serde_json::from_str(&contents) {
+                Ok(x) => {
+                    self.state.game_state = x;
+
+                    self.state.game_speed = GameSpeed::Paused;
+                    self.send_tlm(tlm::Tlm::SpeedChanged(self.state.game_speed));
+
+                    self.state.game_running = true;
+                    self.send_tlm(tlm::Tlm::GameStarted);
+                }
+                Err(err) => {
+                    rwlog::err!(
+                        &self.logger,
+                        "Failed to deserialise the saved game data: {file_path}, {err}"
+                    );
+                }
+            }
         }
     }
 }
