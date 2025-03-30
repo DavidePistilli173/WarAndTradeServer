@@ -1,6 +1,6 @@
 use crate::protocol::cmd;
 use crate::protocol::interface::{Interface, ServerState};
-use crate::ui::main_menu::main_menu::MainMenuScene;
+use crate::ui::gameplay::speed_control::speed_control_update;
 use egui::Ui;
 
 pub struct MainScene {
@@ -23,6 +23,8 @@ impl MainScene {
                         name: self.save_game_name.clone(),
                     }));
                 }
+
+                speed_control_update(ui, interface, server_state);
             });
 
             ui.label(server_state.game_state.civ_name());

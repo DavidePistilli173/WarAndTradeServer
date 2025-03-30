@@ -53,6 +53,8 @@ impl WATUI {
 
 impl eframe::App for WATUI {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        egui_extras::install_image_loaders(ctx);
+
         self.interface.receive_telemetries(&mut self.server_state); // Get telemetries from the server.
 
         egui::CentralPanel::default().show(ctx, |ui| {
