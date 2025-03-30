@@ -1,8 +1,7 @@
 use core::str;
-use std::alloc::System;
 use std::fs::{self, File, remove_file};
 use std::io::{Read, Write};
-use std::thread::{current, sleep};
+use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::game;

@@ -1,13 +1,7 @@
-use crate::{
-    game::common::GameSpeed,
-    protocol::{
-        cmd::{self, SetSpeedPld},
-        interface::{Interface, ServerState},
-    },
-};
+use crate::protocol::interface::ServerState;
 use egui::Ui;
 
-pub fn date_display_update(ui: &mut Ui, interface: &Interface, server_state: &ServerState) {
+pub fn date_display_update(ui: &mut Ui, server_state: &ServerState) {
     ui.horizontal_top(|ui| {
         ui.horizontal(|ui| {
             ui.label(format!(

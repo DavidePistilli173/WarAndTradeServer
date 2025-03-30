@@ -1,4 +1,3 @@
-use crate::protocol::cmd;
 use crate::protocol::interface::{Interface, ServerState};
 use egui::Ui;
 
@@ -19,8 +18,8 @@ impl TopBar {
 
     pub fn update(&mut self, ui: &mut Ui, interface: &Interface, server_state: &ServerState) {
         ui.horizontal(|ui| {
-            self.save_panel.update(ui, interface, server_state);
-            date_display_update(ui, interface, server_state);
+            self.save_panel.update(ui, interface);
+            date_display_update(ui, server_state);
             speed_control_update(ui, interface, server_state);
         });
     }

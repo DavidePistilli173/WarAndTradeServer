@@ -1,5 +1,5 @@
 use crate::protocol::cmd;
-use crate::protocol::interface::{Interface, ServerState};
+use crate::protocol::interface::Interface;
 use egui::Ui;
 
 pub struct SavePanel {
@@ -13,7 +13,7 @@ impl SavePanel {
         }
     }
 
-    pub fn update(&mut self, ui: &mut Ui, interface: &Interface, server_state: &ServerState) {
+    pub fn update(&mut self, ui: &mut Ui, interface: &Interface) {
         ui.vertical_centered(|ui| {
             ui.horizontal(|ui| {
                 ui.text_edit_singleline(&mut self.save_game_name);

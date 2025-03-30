@@ -9,7 +9,6 @@ use crate::{
     ui::main_menu::main_menu::MainMenuState,
 };
 use crossbeam_channel::{Receiver, Sender};
-use egui::Ui;
 use rwlog::sender::Logger;
 
 /// Current state of the UI.

@@ -65,7 +65,7 @@ impl MainMenuState {
                 self.load_game
                     .update(ui, interface, &mut self.scene, server_state)
             }
-            MainMenuScene::Options => self.options.update(ui, interface, &mut self.scene),
+            MainMenuScene::Options => self.options.update(ui, &mut self.scene),
         }
     }
 }
