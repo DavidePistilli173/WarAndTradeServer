@@ -163,7 +163,7 @@ impl GameManager {
                 }
 
                 self.last_sim_time = current_time;
-                self.state.game_state.simulate(1);
+                self.state.game_state.simulate();
             }
         }
     }

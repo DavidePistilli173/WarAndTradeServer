@@ -1,3 +1,4 @@
+use super::left_panel::LeftPanel;
 use super::top_bar::TopBar;
 use crate::protocol::cmd;
 use crate::protocol::interface::{Interface, ServerState};
@@ -18,7 +19,9 @@ impl MainScene {
         ui.vertical_centered(|ui| {
             self.top_bar.update(ui, interface, server_state);
 
-            ui.label(server_state.game_state.civ_name());
+            ui.horizontal(|ui| {
+                LeftPanel::update(ui, interface, server_state);
+            });
 
             if ui.button("Back To Main Menu").clicked() {
                 interface.send_command_to_server(cmd::Cmd::StopGame);
